@@ -15,7 +15,8 @@ class Acheter extends Model
         // 'quantite',
         'date_achat',
         'status',
-        'status_paye',
+        'status_paye',  
+            'type_livre'  
     ];
     public $timestamps = false;
 }

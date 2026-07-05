@@ -15,6 +15,7 @@ class AcheterController extends Controller
     public function index()
     {
         return response()->json(Acheter::all());
+        // return response()->json(Acheter::with(['user', 'livre'])->get());
     }
 
     /**
@@ -24,111 +25,119 @@ class AcheterController extends Controller
      * - LIVRE PDF : vérifier les demandes existantes et gérer les statuts
      * - LIVRE PHYSIQUE : créer une demande normale
      */
-    public function store(Request $request)
-    {
-        // Validation de base
-        $validated = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-            'livre_id' => 'required|integer|exists:livres,id',
-            'date_achat' => 'required|date',
-        ]);
+    // public function store(Request $request)
+    // {
+    //     // Validation de base
+    //     $validated = $request->validate([
+    //         'user_id' => 'nullable|integer|exists:users,id',
+    //         'livre_id' => 'required|integer|exists:livres,id',
+    //         'date_achat' => 'required|date',
 
-        // Récupérer le livre pour déterminer son type
-        $livre = Livres::findOrFail($validated['livre_id']);
+    //         'status'      =>'nullable',
+    //         'status_paye' =>'nullable',
+    //         'type_livre'   =>'nullable'
+    //     ]);
 
-        // Déterminer le type de livre : PDF si pdf_url existe, sinon physique
-        $isPDF = !empty($livre->pdf_url);
+    //     // Récupérer le livre pour déterminer son type
+    //     $livre = Livres::findOrFail($validated['livre_id']);
 
-        // ========== LOGIQUE POUR LIVRE PDF ==========
-        if ($isPDF) {
-            return $this->handlePDFBook($validated);
-        }
+    //     // Déterminer le type de livre : PDF si pdf_url existe, sinon physique
+    //     $isPDF = !empty($livre->pdf_url);
 
-        // ========== LOGIQUE POUR LIVRE PHYSIQUE ==========
-        return $this->handlePhysicalBook($validated);
-    }
+    //     // ========== LOGIQUE POUR LIVRE PDF ==========
+    //     if ($isPDF) {
+    //         return $this->handlePDFBook($validated);
+    //     }
 
-    /**
-     * Gérer l'achat d'un LIVRE PDF
-     * 
-     * Logique :
-     * 1. Vérifier si une demande existe pour ce user + livre
-     * 2. Si aucune : créer nouvelle demande
-     * 3. Si existence : vérifier le status_paye
-     *    - "La demande est incomplète" => déjà en cours
-     *    - "Le paiement a été annulé" => réactiver
-     *    - "Paiement validé" => déjà acheté
-     */
-    private function handlePDFBook($validated)
-    {
-        $userId = $validated['user_id'];
-        $livreId = $validated['livre_id'];
-        $dateAchat = $validated['date_achat'];
+    //     // ========== LOGIQUE POUR LIVRE PHYSIQUE ==========
+    //     return $this->handlePhysicalBook($validated);
+    // }
 
-        // Chercher une demande existante pour ce user + livre
-        $existingAchat = Acheter::where('user_id', $userId)
-            ->where('livre_id', $livreId)
-            ->first();
+    // /**
+    //  * Gérer l'achat d'un LIVRE PDF
+    //  * 
+    //  * Logique :
+    //  * 1. Vérifier si une demande existe pour ce user + livre
+    //  * 2. Si aucune : créer nouvelle demande
+    //  * 3. Si existence : vérifier le status_paye
+    //  *    - "La demande est incomplète" => déjà en cours
+    //  *    - "Le paiement a été annulé" => réactiver
+    //  *    - "Paiement validé" => déjà acheté
+    //  */
+    // private function handlePDFBook($validated)
+    // {
+    //     $userId = $validated['user_id'];
+    //     $livreId = $validated['livre_id'];
+    //     $dateAchat = $validated['date_achat'];
 
-        // Cas 1 : Aucune demande n'existe
-        if (!$existingAchat) {
-            $acheter = Acheter::create([
-                'user_id' => $userId,
-                'livre_id' => $livreId,
-                'date_achat' => $dateAchat,
-                'status' => 'Livre PDF',
-                'status_paye' => 'La demande est incomplète',
-            ]);
+    //     // Chercher une demande existante pour ce user + livre
+    //     $existingAchat = Acheter::where('user_id', $userId)
+    //         ->where('livre_id', $livreId)
+    //         ->first();
+    //     $existinguser = Acheter::where('user_id', $userId)
+    //         ->first();
+    //     // dd($existingAchat);
+    //     // Cas 1 : Aucune demande n'existe
+    //     if($existinguser != null){
+    //     if (!$existingAchat) {
+            
+    //         $acheter = Acheter::create([
+    //             'user_id' => $userId,
+    //             'livre_id' => $livreId,
+    //             'date_achat' => $dateAchat,
+    //             'status' => 'Livre PDF',
+    //             'status_paye' => 'La demande est incomplète',
+    //         ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Demande créée avec succès',
-                'achat' => $acheter,
-            ], 201);
-        }
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Demande créée avec succès',
+    //             'achat' => $acheter,
+    //         ], 201);
+    //     }
 
-        // Cas 2 : Une demande existe - vérifier le status_paye
-        $statusPaye = $existingAchat->status_paye;
+    //     // Cas 2 : Une demande existe - vérifier le status_paye
+    //     $statusPaye = $existingAchat->status_paye;
 
-        // Cas 2a : Demande déjà en cours
-        if ($statusPaye === 'La demande est incomplète') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Votre demande est déjà en cours',
-                'achat' => $existingAchat,
-            ], 409); // 409 Conflict
-        }
+    //     // Cas 2a : Demande déjà en cours
+    //     if ($statusPaye === 'La demande est incomplète') {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Votre demande est déjà en cours',
+    //             'achat' => $existingAchat,
+    //         ], 409); // 409 Conflict
+    //     }
 
-        // Cas 2b : Paiement annulé - réactiver la demande
-        if ($statusPaye === 'Le paiement a été annulé') {
-            $existingAchat->update([
-                'status_paye' => 'La demande est incomplète',
-                'date_achat' => $dateAchat,
-            ]);
+    //     // Cas 2b : Paiement annulé - réactiver la demande
+    //     if ($statusPaye === 'Le paiement a été annulé') {
+    //         $existingAchat->update([
+    //             'status_paye' => 'La demande est incomplète',
+    //             'date_achat' => $dateAchat,
+    //         ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Votre demande a été réactivée',
-                'achat' => $existingAchat,
-            ], 200);
-        }
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Votre demande a été réactivée',
+    //             'achat' => $existingAchat,
+    //         ], 200);
+    //     }
 
-        // Cas 2c : Livre déjà acheté
-        if ($statusPaye === 'Paiement validé') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous avez déjà acheté ce livre',
-                'achat' => $existingAchat,
-            ], 403); // 403 Forbidden
-        }
-
-        // Cas par défaut (statut inconnu)
-        return response()->json([
-            'success' => false,
-            'message' => 'Statut inconnu pour cette demande',
-            'achat' => $existingAchat,
-        ], 400);
-    }
+    //     // Cas 2c : Livre déjà acheté
+    //     if ($statusPaye === 'Paiement validé') {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Vous avez déjà acheté ce livre',
+    //             'achat' => $existingAchat,
+    //         ], 403); // 403 Forbidden
+    //     }
+        
+    //     // Cas par défaut (statut inconnu)
+    //     return response()->json([
+    //         'success' => false,
+    //         'message' => 'Statut inconnu pour cette demande',
+    //         'achat' => $existingAchat,
+    //     ], 400);}
+    // }
 
     /**
      * Gérer l'achat d'un LIVRE PHYSIQUE
@@ -138,23 +147,146 @@ class AcheterController extends Controller
      * 2. Status = "Livre Physique"
      * 3. Status_paye = "En attente" (en attente d'acceptation admin)
      */
+    // private function handlePhysicalBook($validated)
+    // {
+    //     $acheter = Acheter::create([
+    //         'user_id' => $validated['user_id'],
+    //         'livre_id' => $validated['livre_id'],
+    //         'date_achat' => $validated['date_achat'],
+    //         'status' => 'Livre Physique',
+    //         'status_paye' => 'En attente',
+    //     ]);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Demande de livre physique créée en attente d\'acceptation',
+    //         'achat' => $acheter,
+    //     ], 201);
+    // }
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id'     => 'nullable|integer|exists:users,id',
+            'livre_id'    => 'required|integer|exists:livres,id',
+            'date_achat'  => 'required|date',
+            'status'      => 'nullable',
+            'status_paye' => 'nullable',
+            'type_livre'  => 'nullable',
+        ]);
+        // dd($validated['status']);
+        // ── Si user_id est null : demande anonyme/physique directe ──
+        if (empty($validated['user_id'])) {
+            $acheter = Acheter::create([
+                'user_id'     => null,
+                'livre_id'    => $validated['livre_id'],
+                'date_achat'  => $validated['date_achat'],
+                'status'      => 'Livre Physique',
+                'status_paye' => 'La demande est complète',
+            ]);
+ 
+            return response()->json([
+                'success' => true,
+                'message' => 'Demande créée avec succès',
+                'achat'   => $acheter,
+            ], 201);
+        }
+ 
+        // ── user_id présent : déterminer le type du livre ──
+        // $livre = Livres::findOrFail($validated['livre_id']);
+        // $isPDF = !empty($livre->pdf_url);
+ 
+        if (($validated['status'] ?? '') === 'Livre PDF') {
+
+            return $this->handlePDFBook($validated);
+        }
+ 
+        return $this->handlePhysicalBook($validated);
+    }
+ 
+    private function handlePDFBook($validated)
+    {
+        $userId   = $validated['user_id'];
+        $livreId  = $validated['livre_id'];
+        $dateAchat = $validated['date_achat'];
+ 
+        $existingAchat = Acheter::where('user_id', $userId)
+            ->where('livre_id', $livreId)
+            ->first();
+ 
+        // Cas 1 : Aucune demande n'existe pour ce user + ce livre
+        if (!$existingAchat) {
+            $acheter = Acheter::create([
+                'user_id'     => $userId,
+                'livre_id'    => $livreId,
+                'date_achat'  => $dateAchat,
+                'status'      => 'Livre PDF',
+                'status_paye' => 'La demande est complète',
+            ]);
+ 
+            return response()->json([
+                'success' => true,
+                'message' => 'Demande créée avec succès',
+                'achat'   => $acheter,
+            ], 201);
+        }
+ 
+        // $statusPaye = $existingAchat->status_paye;
+ 
+        // Cas 2a : Demande déjà en cours
+        // if ($statusPaye === 'La demande est incomplète') {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Votre demande est déjà en cours',
+        //         'achat'   => $existingAchat,
+        //     ]);
+        // }
+ 
+        // Cas 2b : Paiement annulé → réactiver
+        // if ($statusPaye === 'Le paiement a été annulé') {
+        //     $existingAchat->update([
+        //         'status_paye' => 'La demande est incomplète',
+        //         'date_achat'  => $dateAchat,
+        //     ]);
+ 
+        //     return response()->json([
+        //         'success' => true,
+        //         'message' => 'Votre demande a été réactivée',
+        //         'achat'   => $existingAchat,
+        //     ], 200);
+        // }
+ 
+        // Cas 2c : Déjà acheté
+        // if ($statusPaye === 'Paiement validé') {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Vous avez déjà acheté ce livre',
+        //         'achat'   => $existingAchat,
+        //     ], 403);
+        // }
+ 
+        // return response()->json([
+        //     'success' => false,
+        //     'message' => 'Statut inconnu pour cette demande',
+        //     'achat'   => $existingAchat,
+        // ], 400);
+    }
+ 
     private function handlePhysicalBook($validated)
     {
         $acheter = Acheter::create([
-            'user_id' => $validated['user_id'],
-            'livre_id' => $validated['livre_id'],
-            'date_achat' => $validated['date_achat'],
-            'status' => 'Livre Physique',
-            'status_paye' => 'En attente',
+            'user_id'     => $validated['user_id'],
+            'livre_id'    => $validated['livre_id'],
+            'date_achat'  => $validated['date_achat'],
+            'status'      => 'Livre Physique',
+            'status_paye' => 'La demande est complète',
         ]);
-
+ 
         return response()->json([
             'success' => true,
-            'message' => 'Demande de livre physique créée en attente d\'acceptation',
-            'achat' => $acheter,
+            'message' => "Demande de livre physique créée",
+            'achat'   => $acheter,
         ], 201);
     }
-
     /**
      * Mettre à jour un achat (généralement utilisé par l'admin)
      */
@@ -252,8 +384,13 @@ class AcheterController extends Controller
      */
     public function payment(Request $request, $id)
     {
-        $acheter = Acheter::findOrFail($id);
-
+        $acheter = Acheter::where('user_id', $id)->first();
+        if (!$acheter) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun achat trouvé pour cet utilisateur.'
+            ], 404);
+        }
         // Validation des données de carte
         $validated = $request->validate([
             'cardName' => 'required|string|min:3',

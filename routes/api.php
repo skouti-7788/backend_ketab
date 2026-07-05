@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\AcheterController;
 use App\Http\Controllers\Api\TelechargerController;
 use App\Http\Controllers\Api\OpinionsController;
 use App\Http\Controllers\Api\DescriptionController;
+use App\Http\Controllers\Api\AdminController;
+
 
 
 Route::get('/livres', [LivresController::class, 'index']);
@@ -72,11 +74,16 @@ Route::delete('/telecharger/{id}', [TelechargerController::class, 'destroy']);
 Route::post('/register', [UsersController::class, 'register']);
 Route::post('/login', [UsersController::class, 'login']);
 
+Route::post('/admin/register', [AdminController::class, 'register']);
+Route::post('/admin/login', [AdminController::class, 'login']);
+
 Route::middleware('jwt')->group(function () {
 
     Route::get('/users', [UsersController::class, 'index']);
     Route::post('/logout', [UsersController::class, 'logout']);
 
+    Route::get('/admin', [AdminController::class, 'index']);
+    Route::post('/admin/logout', [AdminController::class, 'logout']);
 
     Route::get('/livres/{livre_id}/opinions', [OpinionsController::class, 'index']);
     Route::post('/opinions', [OpinionsController::class, 'store']);

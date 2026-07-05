@@ -17,7 +17,8 @@ return new class extends Migration
             // $table->integer('quantite')->default(1);
             $table->date('date_achat');
             $table->string('status')->nullable();
-            $table->string('status_paye')->nullable();
+            $table->string('status_paye')->nullable();  
+            $table->string('type_livre')->nullable();
         });
     }
 
