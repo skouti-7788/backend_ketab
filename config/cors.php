@@ -13,7 +13,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://frontend-admin-u8l6.vercel.app','https://frontenduser-seven.vercel.app'],
+    'allowed_origins' => ['https://frontend-admin-u8l6.vercel.app','http://localhost:3000','https://frontenduser-seven.vercel.app'],
 
     'allowed_origins_patterns' => [],
 

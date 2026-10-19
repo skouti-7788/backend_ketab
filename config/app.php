@@ -27,7 +27,7 @@ return [
     */
 
     'env' => env('APP_ENV', 'production'),
-
+    'jwt_secret' => env('JWT_SECRET'),
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode

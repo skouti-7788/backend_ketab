@@ -5,37 +5,53 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Throwable;
+
 class JwtMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        // dd(env('JWT_SECRET'));
+        $token = $request->bearerToken();
 
-         try {
-            $token = $request->bearerToken();
-            //    dd($token);
-            if (!$token) {
-                return response()->json(['message' => 'Token not provided'], 401);
+        if (!$token) {
+            return response()->json([
+                'message' => 'Token not provided',
+            ], 401);
+        }
+
+        $secret = config('app.jwt_secret');
+
+        if (empty($secret)) {
+            return response()->json([
+                'message' => 'Server authentication configuration error',
+            ], 500);
+        }
+
+        try {
+            $decoded = JWT::decode(
+                $token,
+                new Key($secret, 'HS256')
+            );
+
+            if (!isset($decoded->sub)) {
+                return response()->json([
+                    'message' => 'Invalid token payload',
+                ], 401);
             }
 
-            $decoded = JWT::decode($token, new Key(env('JWT_SECRET'), 'HS256'));
+            $request->attributes->set('user_id', $decoded->sub);
 
-            // تخزين user_id داخل request باش تستعملو فـ controller
-            $request->user_id = $decoded->sub;
+        } catch (Throwable $e) {
+            report($e);
 
-        } catch (Exception $e) {
-            return response()->json(['message' => 'Invalid token'], 401);
+            return response()->json([
+                'message' => 'Invalid or expired token',
+            ], 401);
         }
 
         return $next($request);
     }
-    
 }
+ 
